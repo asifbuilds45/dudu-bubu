@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dudu & Bubu</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Sacramento&family=DM+Sans:wght@300;400&display=swap" rel="stylesheet">
+<style>
+:root{--rose:#8B1A2F;--rose-light:#C4566A;--gold:#C9922A;--gold-light:#E8C97A;--cream:#FAF5EE;--cream-dark:#F0E8DA;--ink:#1A1008;--ink-soft:#3D2B1A;--paper:#FDF8F0}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--cream);color:var(--ink);font-family:'DM Sans',sans-serif;font-weight:300;overflow-x:hidden;padding-top:50px}
+
+/* EDIT MODE TOOLBAR */
+#editBar{position:fixed;top:0;left:0;right:0;z-index:9999;background:#1A0808;padding:10px 20px;display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+#editBar span{font-size:12px;color:#C4A060;letter-spacing:0.15em}
+.bar-btns{display:flex;gap:8px}
+.bar-btn{font-family:'DM Sans',sans-serif;font-size:12px;padding:7px 16px;border-radius:6px;cursor:pointer;border:none;transition:all 0.2s}
+.btn-save{background:#8B1A2F;color:#FAF0E0}
+.btn-save:hover{background:#6A1020}
+.btn-publish{background:#C9922A;color:#1A0808;font-weight:500}
+.btn-publish:hover{background:#E8C97A}
+.btn-help{background:transparent;color:#907050;border:1px solid #3A2010}
+.btn-help:hover{background:#2C1008;color:#C4A060}
+
+/* EDIT MODE: fields glow when hovered */
+body.edit-mode [contenteditable]{outline:none;border-bottom:1px dashed rgba(200,150,80,0.4);transition:border-color 0.2s;cursor:text;display:inline-block;min-width:40px}
+body.edit-mode [contenteditable]:hover{border-bottom-color:rgba(200,150,80,0.9)}
+body.edit-mode [contenteditable]:focus{border-bottom-color:var(--gold);border-bottom:1px solid var(--gold)}
+body.edit-mode .editable-block{outline:none;border:1px dashed rgba(200,150,80,0.25);padding:4px 6px;transition:border-color 0.2s;cursor:text}
+body.edit-mode .editable-block:hover{border-color:rgba(200,150,80,0.7)}
+body.edit-mode .editable-block:focus{border-color:var(--gold);border:1px solid var(--gold)}
+body.edit-mode .photo-edit-hint{display:flex!important}
+.photo-edit-hint{display:none;position:absolute;inset:0;background:rgba(0,0,0,0.55);align-items:center;justify-content:center;flex-direction:column;gap:6px;cursor:pointer;z-index:2}
+.photo-edit-hint span{color:#FAF0E0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase}
+
+/* HERO */
+.hero{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:5rem 2rem 4rem;position:relative;overflow:hidden;background:#0D0505}
+.hero-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 30% 40%,#3D1A0A 0%,#1A0808 40%,#0D0505 100%)}
+.petals-container{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.petal{position:absolute;width:8px;height:12px;background:var(--rose-light);border-radius:50% 50% 50% 0;opacity:0;animation:fall linear infinite}
+@keyframes fall{0%{transform:translateY(-20px) rotate(0deg);opacity:0.6}100%{transform:translateY(110vh) rotate(360deg);opacity:0}}
+.hero-content{position:relative;z-index:2}
+.hero-eyebrow{font-family:'Sacramento',cursive;font-size:clamp(1.4rem,4vw,2rem);color:var(--gold-light);margin-bottom:1.5rem;opacity:0;animation:fadeUp 1s ease 0.3s forwards}
+.hero-names{font-family:'Cormorant Garamond',serif;font-size:clamp(3.5rem,10vw,7rem);font-weight:300;color:#FAF0E0;line-height:1}
+.hero-names span{font-style:italic;color:var(--gold-light)}
+.hero-ampersand{display:block;font-family:'Sacramento',cursive;font-size:clamp(2.5rem,6vw,4rem);color:var(--rose-light);margin:0.3rem 0}
+.hero-date{margin-top:2rem;font-size:0.75rem;letter-spacing:0.25em;text-transform:uppercase;color:#A08060;opacity:0;animation:fadeUp 1s ease 0.9s forwards}
+.hero-tagline{margin-top:2.5rem;font-family:'Cormorant Garamond',serif;font-size:clamp(1rem,3vw,1.4rem);font-style:italic;font-weight:300;color:#C8A87A;max-width:500px;line-height:1.8}
+.scroll-hint{position:absolute;bottom:2rem;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;color:#7A6040;font-size:0.7rem;letter-spacing:0.2em;text-transform:uppercase;opacity:0;animation:fadeUp 1s ease 2s forwards}
+.scroll-line{width:1px;height:40px;background:linear-gradient(to bottom,var(--gold),transparent);animation:scrollPulse 2s ease infinite}
+@keyframes scrollPulse{0%,100%{opacity:0.3}50%{opacity:1}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+
+/* SECTIONS */
+section{padding:clamp(4rem,8vw,8rem) clamp(1.5rem,5vw,4rem);max-width:900px;margin:0 auto}
+.section-label{font-size:0.7rem;letter-spacing:0.3em;text-transform:uppercase;color:var(--gold);margin-bottom:1rem;display:flex;align-items:center;gap:1rem}
+.section-label::before{content:'';width:30px;height:1px;background:var(--gold)}
+.section-title{font-family:'Cormorant Garamond',serif;font-size:clamp(2rem,5vw,3.2rem);font-weight:300;line-height:1.2;color:var(--ink);margin-bottom:1.5rem}
+.section-title em{color:var(--rose);font-style:italic}
+.section-body{font-size:clamp(0.95rem,2vw,1.05rem);line-height:1.9;color:var(--ink-soft);max-width:620px}
+
+/* POLAROIDS */
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:2rem;margin-top:3rem}
+.polaroid{background:white;padding:12px 12px 44px;box-shadow:2px 4px 20px rgba(0,0,0,0.12);position:relative;transition:transform 0.3s ease}
+.polaroid:nth-child(odd){transform:rotate(-1.5deg)}
+.polaroid:nth-child(even){transform:rotate(1.2deg)}
+.polaroid:hover{transform:rotate(0deg) scale(1.03);z-index:10}
+.polaroid-img{width:100%;aspect-ratio:1;background:var(--cream-dark);overflow:hidden;position:relative}
+.polaroid-img img{width:100%;height:100%;object-fit:cover;display:block}
+.photo-placeholder-box{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#B09070;font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase}
+.photo-placeholder-box svg{width:28px;height:28px;opacity:0.35}
+.polaroid-caption{position:absolute;bottom:12px;left:0;right:0;text-align:center;font-family:'Sacramento',cursive;font-size:1.1rem;color:var(--ink-soft)}
+
+/* TIMELINE */
+.timeline{position:relative;margin-top:3rem;padding-left:2rem}
+.timeline::before{content:'';position:absolute;left:0;top:8px;bottom:8px;width:1px;background:linear-gradient(to bottom,transparent,var(--gold),var(--rose),var(--gold),transparent)}
+.tl-item{position:relative;margin-bottom:3rem;opacity:0;transform:translateX(-20px);transition:all 0.6s ease}
+.tl-item.visible{opacity:1;transform:translateX(0)}
+.tl-dot{position:absolute;left:-2.45rem;top:4px;width:10px;height:10px;border-radius:50%;background:var(--gold);border:2px solid var(--cream);box-shadow:0 0 0 2px var(--gold)}
+.tl-date{font-size:0.7rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--gold);margin-bottom:0.4rem}
+.tl-heading{font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:400;color:var(--ink);margin-bottom:0.5rem}
+.tl-text{font-size:0.95rem;line-height:1.8;color:var(--ink-soft);max-width:560px}
+
+/* STRUGGLES */
+.struggle-section{background:var(--ink);color:var(--cream);max-width:100%;padding:clamp(4rem,8vw,7rem) clamp(1.5rem,5vw,4rem)}
+.struggle-inner{max-width:900px;margin:0 auto}
+.struggle-section .section-label{color:var(--gold-light)}
+.struggle-section .section-label::before{background:var(--gold-light)}
+.struggle-section .section-title{color:#FAF0E0}
+.struggle-section .section-title em{color:var(--rose-light)}
+.struggle-section .section-body{color:#C8A87A}
+.struggle-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1.5rem;margin-top:3rem}
+.struggle-card{border:1px solid #3A2010;padding:1.5rem;position:relative}
+.struggle-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;background:var(--rose)}
+.struggle-card-icon{font-size:1.4rem;margin-bottom:0.8rem}
+.struggle-card-title{font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:400;color:#F0E0C0;margin-bottom:0.5rem}
+.struggle-card-text{font-size:0.85rem;line-height:1.7;color:#907860}
+
+/* SONG */
+.song-section{text-align:center;padding:clamp(4rem,8vw,8rem) clamp(1.5rem,5vw,4rem);background:var(--cream-dark);max-width:100%}
+.song-inner{max-width:700px;margin:0 auto}
+.song-note{font-family:'Sacramento',cursive;font-size:clamp(2rem,5vw,3rem);color:var(--rose);margin-bottom:2rem}
+.song-title-label{font-size:0.7rem;letter-spacing:0.3em;text-transform:uppercase;color:var(--gold);margin-bottom:1.5rem}
+.lyrics-meaning{margin-top:1.5rem;font-size:0.9rem;color:var(--ink-soft);line-height:1.8;font-style:italic}
+
+/* APOLOGY */
+.apology-section{background:var(--paper);max-width:100%;padding:clamp(4rem,8vw,8rem) clamp(1.5rem,5vw,4rem)}
+.apology-inner{max-width:680px;margin:0 auto}
+.apology-paper{background:white;padding:clamp(2rem,5vw,3.5rem);position:relative;border-left:3px solid var(--rose)}
+.apology-paper::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--rose),transparent)}
+.apology-top{display:flex;align-items:center;gap:1rem;margin-bottom:2rem;padding-bottom:1.2rem;border-bottom:1px dashed #DDD0B8}
+.apology-icon{font-size:2rem;flex-shrink:0}
+.apology-top-text{}
+.apology-top-label{font-size:0.65rem;letter-spacing:0.25em;text-transform:uppercase;color:#B09060;margin-bottom:4px}
+.apology-top-title{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:300;color:var(--rose)}
+.apology-opening{font-family:'Cormorant Garamond',serif;font-size:clamp(1rem,2.5vw,1.2rem);line-height:2;color:var(--ink-soft);font-weight:300;margin-bottom:2rem}
+.apology-mistakes-label{font-size:0.65rem;letter-spacing:0.25em;text-transform:uppercase;color:#B09060;margin-bottom:1rem;display:block}
+.apology-mistakes{margin-bottom:2rem}
+.apology-mistake-item{display:flex;gap:12px;align-items:flex-start;padding:0.9rem 0;border-bottom:1px dashed #EEE0CC}
+.apology-mistake-item:last-child{border-bottom:none}
+.apology-num{font-family:'Sacramento',cursive;font-size:1.4rem;color:var(--rose-light);flex-shrink:0;line-height:1.4}
+.apology-mistake-text{font-family:'Cormorant Garamond',serif;font-size:1.05rem;font-weight:300;line-height:1.8;color:var(--ink-soft)}
+.apology-closing{font-family:'Cormorant Garamond',serif;font-size:clamp(1rem,2.5vw,1.15rem);line-height:2;color:var(--ink-soft);font-weight:300;border-top:1px dashed #DDD0B8;padding-top:1.5rem;margin-top:0.5rem}
+.apology-sign{font-family:'Sacramento',cursive;font-size:clamp(1.5rem,4vw,2rem);color:var(--ink);text-align:right;margin-top:1.5rem}
+
+/* LETTER */
+.letter-section{background:var(--paper);max-width:100%;padding:clamp(4rem,8vw,8rem) clamp(1.5rem,5vw,4rem)}
+.letter-inner{max-width:680px;margin:0 auto;background:white;padding:clamp(2rem,5vw,4rem);position:relative}
+.letter-inner::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--rose),var(--gold),var(--rose))}
+.letter-greeting{font-family:'Sacramento',cursive;font-size:clamp(1.8rem,4vw,2.5rem);color:var(--rose);margin-bottom:1.5rem}
+.letter-body{font-family:'Cormorant Garamond',serif;font-size:clamp(1rem,2.5vw,1.2rem);line-height:2;color:var(--ink-soft);font-weight:300}
+.letter-body p{margin-bottom:1.2rem}
+.letter-sign{margin-top:2rem;font-family:'Sacramento',cursive;font-size:clamp(1.5rem,4vw,2.2rem);color:var(--ink);text-align:right}
+
+/* PROMISE */
+.promise-section{text-align:center;padding:clamp(5rem,10vw,10rem) clamp(1.5rem,5vw,4rem);background:var(--ink);max-width:100%;position:relative;overflow:hidden}
+.promise-section::before{content:'∞';position:absolute;font-size:40vw;color:#1F0A04;top:50%;left:50%;transform:translate(-50%,-50%);font-family:'Cormorant Garamond',serif;pointer-events:none}
+.promise-inner{position:relative;z-index:1;max-width:700px;margin:0 auto}
+.promise-eyebrow{font-size:0.7rem;letter-spacing:0.3em;text-transform:uppercase;color:var(--gold);margin-bottom:2rem}
+.promise-title{font-family:'Cormorant Garamond',serif;font-size:clamp(2.5rem,7vw,5rem);font-weight:300;color:#FAF0E0;line-height:1.1;margin-bottom:2rem}
+.promise-title em{font-style:italic;color:var(--gold-light);display:block}
+.promise-body{font-size:clamp(0.95rem,2vw,1.1rem);line-height:1.9;color:#A08060;margin-bottom:3rem}
+.promise-seal{width:80px;height:80px;border-radius:50%;border:1px solid #3A2010;display:inline-flex;align-items:center;justify-content:center;font-family:'Sacramento',cursive;font-size:1.2rem;color:var(--gold-light)}
+
+/* FOOTER */
+footer{background:#0D0505;text-align:center;padding:3rem 2rem;color:#4A3020;font-size:0.8rem;letter-spacing:0.15em}
+footer span{color:var(--rose)}
+
+.reveal{opacity:0;transform:translateY(30px);transition:opacity 0.8s ease,transform 0.8s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+
+.diya{font-size:2rem;display:block;margin:0 auto 1rem;animation:flicker 3s ease-in-out infinite}
+@keyframes flicker{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.85;transform:scale(0.97)}}
+
+/* HELP TOOLTIP */
+.edit-tip{display:none;position:fixed;bottom:20px;right:20px;background:#2C1008;border:1px solid #5A3010;padding:14px 18px;max-width:260px;z-index:9998;font-size:12px;color:#C4A060;line-height:1.7;border-radius:4px}
+.edit-tip.show{display:block}
+.edit-tip strong{color:#E8C97A;display:block;margin-bottom:6px}
+.edit-tip-close{float:right;cursor:pointer;color:#907050;margin-left:8px;font-size:14px}
+
+/* PHOTO CONTROLS */
+.photo-controls{display:none;position:absolute;bottom:0;left:0;right:0;z-index:5;background:rgba(10,4,2,0.85);padding:6px 4px;gap:3px;flex-wrap:wrap;justify-content:center}
+body.edit-mode .polaroid-img:hover .photo-controls{display:flex}
+.photo-controls button{font-family:'DM Sans',sans-serif;font-size:9px;padding:3px 7px;border:1px solid rgba(200,150,80,0.4);background:transparent;color:#C4A060;border-radius:3px;cursor:pointer;letter-spacing:0.05em;transition:all 0.15s}
+.photo-controls button:hover,.photo-controls button.active{background:var(--gold);color:#1A0808;border-color:var(--gold)}
+.photo-zoom{display:none;position:absolute;bottom:30px;left:0;right:0;z-index:6;padding:4px 6px;background:rgba(10,4,2,0.85);align-items:center;gap:6px;justify-content:center}
+body.edit-mode .polaroid-img:hover .photo-zoom{display:flex}
+.photo-zoom label{font-size:9px;color:#C4A060;letter-spacing:0.05em;white-space:nowrap}
+.photo-zoom input[type=range]{width:80px;accent-color:var(--gold);height:3px}
+
+/* PUBLISHED: hide photo controls */
+body.published .photo-controls,body.published .photo-zoom{display:none!important}
+
+/* ── MOBILE RESPONSIVE ── */
+@media(max-width:768px){
+
+  /* Edit bar */
+  #editBar{flex-direction:column;align-items:flex-start;gap:8px;padding:8px 14px}
+  #editBar span{font-size:11px}
+  .bar-btns{width:100%;justify-content:flex-start;flex-wrap:wrap;gap:6px}
+  .bar-btn{font-size:11px;padding:6px 12px}
+  body{padding-top:80px!important}
+
+  /* Hero */
+  .hero{padding:6rem 1.25rem 3.5rem}
+  .hero-names{font-size:clamp(3rem,14vw,5rem)}
+  .hero-eyebrow{font-size:clamp(1.2rem,5vw,1.6rem)}
+  .hero-tagline{font-size:1rem;padding:0 0.5rem}
+  .hero-date{font-size:0.65rem;letter-spacing:0.18em}
+
+  /* Generic sections */
+  section{padding:clamp(3rem,7vw,5rem) 1.25rem}
+  .section-title{font-size:clamp(1.8rem,7vw,2.8rem)}
+  .section-body{font-size:0.95rem}
+
+  /* Photo grids */
+  .photo-grid{grid-template-columns:1fr 1fr;gap:0.9rem}
+  .polaroid{padding:8px 8px 38px}
+  .polaroid-caption{font-size:0.9rem;bottom:8px}
+  /* 3rd polaroid spans full width on very small screens */
+  .photo-grid .polaroid:nth-child(3){grid-column:1/-1;max-width:200px;margin:0 auto}
+
+  /* Timeline */
+  .timeline{padding-left:1.4rem}
+  .tl-dot{left:-2rem}
+  .tl-heading{font-size:1.2rem}
+  .tl-text{font-size:0.9rem}
+
+  /* Song section */
+  .song-section{padding:clamp(3rem,7vw,5rem) 1.25rem}
+  .song-note{font-size:clamp(1.6rem,8vw,2.4rem)}
+
+  /* Struggles */
+  .struggle-section{padding:clamp(3rem,7vw,5rem) 1.25rem}
+  .struggle-cards{grid-template-columns:1fr;gap:1rem}
+  .struggle-card{padding:1.2rem}
+
+  /* Apology */
+  .apology-section{padding:clamp(3rem,7vw,5rem) 1.25rem}
+  .apology-paper{padding:1.5rem 1.25rem}
+  .apology-top{flex-direction:row;gap:0.75rem}
+  .apology-top-title{font-size:1.2rem}
+  .apology-opening{font-size:1rem}
+  .apology-mistake-text{font-size:0.95rem}
+  .apology-num{font-size:1.2rem}
+  .apology-closing{font-size:0.95rem}
+  .apology-sign{font-size:1.6rem}
+
+  /* Letter */
+  .letter-section{padding:clamp(3rem,7vw,5rem) 1.25rem}
+  .letter-inner{padding:1.5rem 1.25rem}
+  .letter-greeting{font-size:clamp(1.5rem,7vw,2rem)}
+  .letter-body{font-size:1rem}
+  .letter-sign{font-size:clamp(1.3rem,6vw,1.8rem)}
+
+  /* Promise */
+  .promise-section{padding:clamp(4rem,9vw,7rem) 1.25rem}
+  .promise-title{font-size:clamp(2rem,9vw,3.5rem)}
+  .promise-body{font-size:0.95rem}
+  .promise-seal{width:64px;height:64px;font-size:1rem}
+  .promise-section::before{font-size:60vw}
+
+  /* Footer */
+  footer{padding:2rem 1.25rem;font-size:0.75rem}
+
+  /* Help tooltip */
+  .edit-tip{max-width:calc(100vw - 40px);right:10px;bottom:10px;font-size:11px}
+}
+
+@media(max-width:400px){
+  /* Extra small: single column photos */
+  .photo-grid{grid-template-columns:1fr}
+  .photo-grid .polaroid:nth-child(3){grid-column:unset;max-width:100%}
+  .polaroid:nth-child(odd){transform:rotate(-1deg)}
+  .polaroid:nth-child(even){transform:rotate(1deg)}
+  body{padding-top:90px!important}
+  #editBar{padding:6px 10px}
+}
+</style>
+</head>
+<body>
+
+<!-- EDIT BAR -->
+<div id="editBar">
+  <span id="editStatus">✏️ EDIT MODE — click any text on the page to change it</span>
+  <div class="bar-btns">
+    <button class="bar-btn btn-help" onclick="toggleHelp()">How to edit?</button>
+    <button class="bar-btn btn-save" onclick="saveProgress()">Save progress</button>
+    <button class="bar-btn btn-publish" onclick="publishSite()">Publish (hide editor)</button>
+  </div>
+</div>
+
+<!-- HELP TIP -->
+<div class="edit-tip" id="editTip">
+  <span class="edit-tip-close" onclick="toggleHelp()">✕</span>
+  <strong>How to edit your website</strong>
+  Click any text — it turns editable. Type your own words.<br><br>
+  Click photo frames to pick your image from your phone/laptop.<br><br>
+  "Save progress" keeps your text so you can come back later.<br><br>
+  "Publish" hides this bar and shows the clean final website.
+</div>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-bg"></div>
+  <div class="petals-container" id="petals"></div>
+  <div class="hero-content">
+    <p class="hero-eyebrow" contenteditable="true" spellcheck="false">A love story that began in silence</p>
+    <h1 class="hero-names" spellcheck="false">
+      <span contenteditable="true">Dudu</span>
+      <span class="hero-ampersand">&</span>
+      <span contenteditable="true" style="font-style:italic;color:var(--gold-light)">Bubu</span>
+    </h1>
+    <p class="hero-date" contenteditable="true" spellcheck="false">1st October 2025 · Marudhamalai Temple</p>
+    <p class="hero-tagline editable-block" contenteditable="true" spellcheck="false">Write your own tagline here — something that means everything to you both</p>
+  </div>
+  <div class="scroll-hint"><span>Our story</span><div class="scroll-line"></div></div>
+</div>
+
+<!-- CHAPTER 1 -->
+<section>
+  <div class="section-label reveal" contenteditable="true" spellcheck="false">Chapter One</div>
+  <h2 class="section-title reveal">
+    <span contenteditable="true" spellcheck="false">Write your chapter title here —</span>
+    <em contenteditable="true" spellcheck="false"> the italic part</em>
+  </h2>
+  <p class="section-body reveal editable-block" contenteditable="true" spellcheck="false">
+    Write your own story of how it all started. In your words — how you first saw her, what you felt, what you didn't say. This is YOUR story, not mine to write.
+  </p>
+  <p class="section-body reveal editable-block" contenteditable="true" spellcheck="false" style="margin-top:1rem">
+    Continue your story here — the second paragraph of how it began...
+  </p>
+</section>
+
+<!-- PHOTOS 1 -->
+<section style="padding-top:0">
+  <div class="section-label reveal" contenteditable="true" spellcheck="false">Our Moments</div>
+  <div class="photo-grid">
+    <div class="polaroid reveal">
+      <div class="polaroid-img" id="pframe1">
+        <img id="pimg1" src="photos/photo1.jpg" alt="Our moment" style="object-position:center center;transform:scale(1)" onerror="this.parentNode.innerHTML='<div class=\'photo-placeholder-box\'><svg viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'1.5\'><rect x=\'3\' y=\'3\' width=\'18\' height=\'18\' rx=\'2\'/><circle cx=\'8.5\' cy=\'8.5\' r=\'1.5\'/><path d=\'M21 15l-5-5L5 21\'/></svg><span>photo1.jpg</span></div>'">
+        <div class="photo-zoom"><label>Zoom</label><input type="range" min="100" max="200" value="100" oninput="zoomPhoto('pimg1',this.value)"></div>
+        <div class="photo-controls">
+          <button onclick="posPhoto('pimg1','top left')">↖</button>
+          <button onclick="posPhoto('pimg1','top center')">↑</button>
+          <button onclick="posPhoto('pimg1','top right')">↗</button>
+          <button onclick="posPhoto('pimg1','center left')">←</button>
+          <button onclick="posPhoto('pimg1','center center')" class="active">●</button>
+          <button onclick="posPhoto('pimg1','center right')">→</button>
+          <button onclick="posPhoto('pimg1','bottom left')">↙</button>
+          <button onclick="posPhoto('pimg1','bottom center')">↓</button>
+          <button onclick="posPhoto('pimg1','bottom right')">↘</button>
+        </div>
+      </div>
+      <span class="polaroid-caption" contenteditable="true" spellcheck="false">Caption here</span>
+    </div>
+    <div class="polaroid reveal">
+      <div class="polaroid-img" id="pframe2">
+        <img id="pimg2" src="photos/photo2.jpg" alt="Our moment" style="object-position:center center;transform:scale(1)" onerror="this.parentNode.innerHTML='<div class=\'photo-placeholder-box\'><svg viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'1.5\'><rect x=\'3\' y=\'3\' width=\'18\' height=\'18\' rx=\'2\'/><circle cx=\'8.5\' cy=\'8.5\' r=\'1.5\'/><path d=\'M21 15l-5-5L5 21\'/></svg><span>photo2.jpg</span></div>'">
+        <div class="photo-zoom"><label>Zoom</label><input type="range" min="100" max="200" value="100" oninput="zoomPhoto('pimg2',this.value)"></div>
+        <div class="photo-controls">
+          <button onclick="posPhoto('pimg2','top left')">↖</button>
+          <button onclick="posPhoto('pimg2','top center')">↑</button>
+          <button onclick="posPhoto('pimg2','top right')">↗</button>
+          <button onclick="posPhoto('pimg2','center left')">←</button>
+          <button onclick="posPhoto('pimg2','center center')" class="active">●</button>
+          <button onclick="posPhoto('pimg2','center right')">→</button>
+          <button onclick="posPhoto('pimg2','bottom left')">↙</button>
+          <button onclick="posPhoto('pimg2','bottom center')">↓</button>
+          <button onclick="posPhoto('pimg2','bottom right')">↘</button>
+        </div>
+      </div>
+      <span class="polaroid-caption" contenteditable="true" spellcheck="false">Caption here</span>
+    </div>
+    <div class="polaroid reveal">
+      <div class="polaroid-img" id="pframe3">
+        <img id="pimg3" src="photos/photo3.jpg" alt="Our moment" style="object-position:center center;transform:scale(1)" onerror="this.parentNode.innerHTML='<div class=\'photo-placeholder-box\'><svg viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'1.5\'><rect x=\'3\' y=\'3\' width=\'18\' height=\'18\' rx=\'2\'/><circle cx=\'8.5\' cy=\'8.5\' r=\'1.5\'/><path d=\'M21 15l-5-5L5 21\'/></svg><span>photo3.jpg</span></div>'">
+        <div class="photo-zoom"><label>Zoom</label><input type="range" min="100" max="200" value="100" oninput="zoomPhoto('pimg3',this.value)"></div>
+        <div class="photo-controls">
+          <button onclick="posPhoto('pimg3','top left')">↖</button>
+          <button onclick="posPhoto('pimg3','top center')">↑</button>
+          <button onclick="posPhoto('pimg3','top right')">↗</button>
+          <button onclick="posPhoto('pimg3','center left')">←</button>
+          <button onclick="posPhoto('pimg3','center center')" class="active">●</button>
+          <button onclick="posPhoto('pimg3','center right')">→</button>
+          <button onclick="posPhoto('pimg3','bottom left')">↙</button>
+          <button onclick="posPhoto('pimg3','bottom center')">↓</button>
+          <button onclick="posPhoto('pimg3','bottom right')">↘</button>
+        </div>
+      </div>
+      <span class="polaroid-caption" contenteditable="true" spellcheck="false">Caption here</span>
+    </div>
+  </div>
+</section>
+
+<!-- TIMELINE -->
+<section>
+  <div class="section-label reveal" contenteditable="true" spellcheck="false">How it unfolded</div>
+  <h2 class="section-title reveal">Our <em contenteditable="true" spellcheck="false">Timeline</em></h2>
+  <div class="timeline">
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-date" contenteditable="true" spellcheck="false">First Year</div>
+      <div class="tl-heading" contenteditable="true" spellcheck="false">Write the title of this moment</div>
+      <p class="tl-text editable-block" contenteditable="true" spellcheck="false">Describe this moment in your own words. What happened? What did you feel?</p>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-date" contenteditable="true" spellcheck="false">3rd Semester</div>
+      <div class="tl-heading" contenteditable="true" spellcheck="false">Write the title of this moment</div>
+      <p class="tl-text editable-block" contenteditable="true" spellcheck="false">Describe this moment in your own words. What happened? What did you feel?</p>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot" style="background:var(--rose)"></div>
+      <div class="tl-date" contenteditable="true" spellcheck="false">1st October 2025</div>
+      <div class="tl-heading" contenteditable="true" spellcheck="false">The Proposal at Marudhamalai 🪔</div>
+      <p class="tl-text editable-block" contenteditable="true" spellcheck="false">Describe this moment in your own words. What happened? What did you feel?</p>
+    </div>
+    <div class="tl-item">
+      <div class="tl-dot"></div>
+      <div class="tl-date" contenteditable="true" spellcheck="false">After that</div>
+      <div class="tl-heading" contenteditable="true" spellcheck="false">Write the title of this moment</div>
+      <p class="tl-text editable-block" contenteditable="true" spellcheck="false">Describe this moment in your own words. What happened? What did you feel?</p>
+    </div>
+  </div>
+</section>
+
+<!-- SONG -->
+<div class="song-section">
+  <div class="song-inner">
+    <p class="song-title-label reveal" contenteditable="true" spellcheck="false">The first song she ever recommended to you</p>
+    <p class="song-note reveal" contenteditable="true" spellcheck="false">Vaa Vaa Penne</p>
+    <p style="font-size:0.75rem;letter-spacing:0.15em;color:#9A7850;margin-bottom:2rem" class="reveal" contenteditable="true" spellcheck="false">Uriyadi 2 · Govind Vasantha · Sid Sriram</p>
+
+    <div class="reveal" style="position:relative;width:100%;max-width:560px;margin:0 auto 2rem;aspect-ratio:16/9;background:#0D0505;border-radius:4px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,0.25)">
+      <iframe
+        src="https://www.youtube.com/embed/z3uj6iJUSYQ?rel=0&modestbranding=1&color=white"
+        title="Vaa Vaa Penne – Uriyadi 2"
+        frameborder="0"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowfullscreen
+        style="position:absolute;inset:0;width:100%;height:100%"
+      ></iframe>
+    </div>
+
+    <p class="lyrics-meaning reveal editable-block" contenteditable="true" spellcheck="false">
+      Write what this song means to you — why she sent it, when she sent it, what you felt when you first heard it...
+    </p>
+  </div>
+</div>
+
+<!-- STRUGGLES -->
+<div class="struggle-section">
+  <div class="struggle-inner">
+    <div class="section-label" contenteditable="true" spellcheck="false">They tested us</div>
+    <h2 class="section-title reveal">
+      <span contenteditable="true" spellcheck="false">The storms we</span>
+      <em contenteditable="true" spellcheck="false"> survived together</em>
+    </h2>
+    <p class="section-body reveal editable-block" contenteditable="true" spellcheck="false">
+      Write your own words about the struggles. What did you face? How did it feel? Don't let me write this — this part is the most important.
+    </p>
+    <div class="struggle-cards">
+      <div class="struggle-card reveal">
+        <div class="struggle-card-icon" contenteditable="true" spellcheck="false">🌙</div>
+        <div class="struggle-card-title" contenteditable="true" spellcheck="false">The Ramzan Separation</div>
+        <p class="struggle-card-text editable-block" contenteditable="true" spellcheck="false">Write what happened during this time. In your own words.</p>
+      </div>
+      <div class="struggle-card reveal">
+        <div class="struggle-card-icon" contenteditable="true" spellcheck="false">⚔️</div>
+        <div class="struggle-card-title" contenteditable="true" spellcheck="false">The Opposition</div>
+        <p class="struggle-card-text editable-block" contenteditable="true" spellcheck="false">Write what happened during this time. In your own words.</p>
+      </div>
+      <div class="struggle-card reveal">
+        <div class="struggle-card-icon" contenteditable="true" spellcheck="false">🏠</div>
+        <div class="struggle-card-title" contenteditable="true" spellcheck="false">Family & the World</div>
+        <p class="struggle-card-text editable-block" contenteditable="true" spellcheck="false">Write what happened during this time. In your own words.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PHOTOS 2 -->
+<section>
+  <div class="section-label reveal" contenteditable="true" spellcheck="false">Through it all</div>
+  <div class="photo-grid">
+    <div class="polaroid reveal">
+      <div class="polaroid-img" id="pframe4">
+        <img id="pimg4" src="photos/photo4.jpg" alt="Our moment" style="object-position:center center;transform:scale(1)" onerror="this.parentNode.innerHTML='<div class=\'photo-placeholder-box\'><svg viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'1.5\'><rect x=\'3\' y=\'3\' width=\'18\' height=\'18\' rx=\'2\'/><circle cx=\'8.5\' cy=\'8.5\' r=\'1.5\'/><path d=\'M21 15l-5-5L5 21\'/></svg><span>photo4.jpg</span></div>'">
+        <div class="photo-zoom"><label>Zoom</label><input type="range" min="100" max="200" value="100" oninput="zoomPhoto('pimg4',this.value)"></div>
+        <div class="photo-controls">
+          <button onclick="posPhoto('pimg4','top left')">↖</button>
+          <button onclick="posPhoto('pimg4','top center')">↑</button>
+          <button onclick="posPhoto('pimg4','top right')">↗</button>
+          <button onclick="posPhoto('pimg4','center left')">←</button>
+          <button onclick="posPhoto('pimg4','center center')" class="active">●</button>
+          <button onclick="posPhoto('pimg4','center right')">→</button>
+          <button onclick="posPhoto('pimg4','bottom left')">↙</button>
+          <button onclick="posPhoto('pimg4','bottom center')">↓</button>
+          <button onclick="posPhoto('pimg4','bottom right')">↘</button>
+        </div>
+      </div>
+      <span class="polaroid-caption" contenteditable="true" spellcheck="false">Caption here</span>
+    </div>
+    <div class="polaroid reveal">
+      <div class="polaroid-img" id="pframe5">
+        <img id="pimg5" src="photos/photo5.jpg" alt="Our moment" style="object-position:center center;transform:scale(1)" onerror="this.parentNode.innerHTML='<div class=\'photo-placeholder-box\'><svg viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'1.5\'><rect x=\'3\' y=\'3\' width=\'18\' height=\'18\' rx=\'2\'/><circle cx=\'8.5\' cy=\'8.5\' r=\'1.5\'/><path d=\'M21 15l-5-5L5 21\'/></svg><span>photo5.jpg</span></div>'">
+        <div class="photo-zoom"><label>Zoom</label><input type="range" min="100" max="200" value="100" oninput="zoomPhoto('pimg5',this.value)"></div>
+        <div class="photo-controls">
+          <button onclick="posPhoto('pimg5','top left')">↖</button>
+          <button onclick="posPhoto('pimg5','top center')">↑</button>
+          <button onclick="posPhoto('pimg5','top right')">↗</button>
+          <button onclick="posPhoto('pimg5','center left')">←</button>
+          <button onclick="posPhoto('pimg5','center center')" class="active">●</button>
+          <button onclick="posPhoto('pimg5','center right')">→</button>
+          <button onclick="posPhoto('pimg5','bottom left')">↙</button>
+          <button onclick="posPhoto('pimg5','bottom center')">↓</button>
+          <button onclick="posPhoto('pimg5','bottom right')">↘</button>
+        </div>
+      </div>
+      <span class="polaroid-caption" contenteditable="true" spellcheck="false">Caption here</span>
+    </div>
+    <div class="polaroid reveal">
+      <div class="polaroid-img" id="pframe6">
+        <img id="pimg6" src="photos/photo6.jpg" alt="Our moment" style="object-position:center center;transform:scale(1)" onerror="this.parentNode.innerHTML='<div class=\'photo-placeholder-box\'><svg viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'1.5\'><rect x=\'3\' y=\'3\' width=\'18\' height=\'18\' rx=\'2\'/><circle cx=\'8.5\' cy=\'8.5\' r=\'1.5\'/><path d=\'M21 15l-5-5L5 21\'/></svg><span>photo6.jpg</span></div>'">
+        <div class="photo-zoom"><label>Zoom</label><input type="range" min="100" max="200" value="100" oninput="zoomPhoto('pimg6',this.value)"></div>
+        <div class="photo-controls">
+          <button onclick="posPhoto('pimg6','top left')">↖</button>
+          <button onclick="posPhoto('pimg6','top center')">↑</button>
+          <button onclick="posPhoto('pimg6','top right')">↗</button>
+          <button onclick="posPhoto('pimg6','center left')">←</button>
+          <button onclick="posPhoto('pimg6','center center')" class="active">●</button>
+          <button onclick="posPhoto('pimg6','center right')">→</button>
+          <button onclick="posPhoto('pimg6','bottom left')">↙</button>
+          <button onclick="posPhoto('pimg6','bottom center')">↓</button>
+          <button onclick="posPhoto('pimg6','bottom right')">↘</button>
+        </div>
+      </div>
+      <span class="polaroid-caption" contenteditable="true" spellcheck="false">Caption here</span>
+    </div>
+  </div>
+</section>
+
+<!-- APOLOGY -->
+<div class="apology-section">
+  <div class="apology-inner">
+    <div class="section-label reveal" contenteditable="true" spellcheck="false">From my heart</div>
+    <h2 class="section-title reveal">
+      <span contenteditable="true" spellcheck="false">The things I'm</span>
+      <em contenteditable="true" spellcheck="false"> truly sorry for</em>
+    </h2>
+    <p class="section-body reveal editable-block" contenteditable="true" spellcheck="false">
+      Write a short intro here — why you are saying sorry, what this means to you before listing your mistakes...
+    </p>
+
+    <div class="apology-paper reveal" style="margin-top:2.5rem">
+      <div class="apology-top">
+        <div class="apology-icon" contenteditable="true" spellcheck="false">🤍</div>
+        <div class="apology-top-text">
+          <div class="apology-top-label">A letter of apology</div>
+          <div class="apology-top-title" contenteditable="true" spellcheck="false">To my Gundu — what I should have said sooner</div>
+        </div>
+      </div>
+
+      <div class="apology-opening editable-block" contenteditable="true" spellcheck="false">
+        Write your opening apology here — the general feeling of being sorry, before you get into the specific things. Speak to her directly. Like she is reading this right now.
+      </div>
+
+      <span class="apology-mistakes-label">The things I did wrong — knowingly and unknowingly</span>
+
+      <div class="apology-mistakes" id="apologyMistakes">
+        <div class="apology-mistake-item">
+          <span class="apology-num">1.</span>
+          <div class="apology-mistake-text editable-block" contenteditable="true" spellcheck="false">Write your first mistake here — something you did that hurt her, even if you didn't mean to...</div>
+        </div>
+        <div class="apology-mistake-item">
+          <span class="apology-num">2.</span>
+          <div class="apology-mistake-text editable-block" contenteditable="true" spellcheck="false">Write your second mistake here — be honest, she will feel the truth in your words...</div>
+        </div>
+        <div class="apology-mistake-item">
+          <span class="apology-num">3.</span>
+          <div class="apology-mistake-text editable-block" contenteditable="true" spellcheck="false">Write your third mistake here — even the small things that you feel bad about...</div>
+        </div>
+        <div class="apology-mistake-item">
+          <span class="apology-num">4.</span>
+          <div class="apology-mistake-text editable-block" contenteditable="true" spellcheck="false">Write your fourth mistake here — the ones you didn't even realise until later...</div>
+        </div>
+        <div class="apology-mistake-item">
+          <span class="apology-num">5.</span>
+          <div class="apology-mistake-text editable-block" contenteditable="true" spellcheck="false">Write your fifth mistake here — keep going, as many as you need...</div>
+        </div>
+      </div>
+      <div style="margin-bottom:1.5rem">
+        <button onclick="addApologyMistake()" style="font-family:'DM Sans',sans-serif;font-size:12px;padding:7px 14px;background:transparent;border:1px dashed #C4A070;color:#8B5030;border-radius:4px;cursor:pointer">+ Add another</button>
+      </div>
+
+      <div class="apology-closing editable-block" contenteditable="true" spellcheck="false">
+        Write your closing words here — not just sorry, but what you understand now. What changed in you. What you will do differently. End it the way your heart ends it.
+      </div>
+
+      <div class="apology-sign" contenteditable="true" spellcheck="false">— Yours, Dudu 🤍</div>
+    </div>
+  </div>
+</div>
+
+<!-- LOVE LETTER -->
+<div class="letter-section">
+  <div class="letter-inner">
+    <p class="letter-greeting" contenteditable="true" spellcheck="false">My Gundu,</p>
+    <div class="letter-body" contenteditable="true" spellcheck="false">
+      <p>Write your letter here. Your real words, from your heart. No one else's. Start with how you feel right now...</p>
+      <p>Continue writing. Tell her everything you've never said out loud. The things you kept inside...</p>
+      <p>Tell her what she means to you. Not what sounds good — what is actually true...</p>
+      <p>Tell her about the future. What you want. What you're building toward. What you promise her...</p>
+    </div>
+    <p class="letter-sign" contenteditable="true" spellcheck="false">— Always yours, Dudu 🤍</p>
+  </div>
+</div>
+
+<!-- PROMISE -->
+<div class="promise-section">
+  <div class="promise-inner">
+    <p class="promise-eyebrow reveal" contenteditable="true" spellcheck="false">Our Promise</p>
+    <span class="diya reveal">🪔</span>
+    <h2 class="promise-title reveal" contenteditable="true" spellcheck="false">
+      Write your promise title here.<br>
+      <em>The words only you can write.</em>
+    </h2>
+    <p class="promise-body reveal editable-block" contenteditable="true" spellcheck="false">
+      Write your final message here. What does this love mean? Where is it going? What do you hope for? This is the last thing she reads — make it yours.
+    </p>
+    <div class="promise-seal reveal" contenteditable="true" spellcheck="false">D & K</div>
+  </div>
+</div>
+
+<footer>
+  <span contenteditable="true" spellcheck="false">Made with every piece of my heart ♥ For Kanishka, always</span>
+</footer>
+
+<script>
+// Apology add mistake
+let apologyCount = 6;
+function addApologyMistake(){
+  const container = document.getElementById('apologyMistakes');
+  const item = document.createElement('div');
+  item.className = 'apology-mistake-item';
+  item.innerHTML = `<span class="apology-num">${apologyCount}.</span><div class="apology-mistake-text editable-block" contenteditable="true" spellcheck="false">Write your mistake here...</div>`;
+  container.appendChild(item);
+  apologyCount++;
+  item.querySelector('[contenteditable]').focus();
+}
+
+// ── SECRET EDIT MODE ──
+// Activate by: URL param ?edit=true  OR  press Ctrl+Shift+E
+function enableEditMode(){
+  document.body.classList.add('edit-mode');
+  const bar = document.getElementById('editBar');
+  bar.style.display = 'flex';
+  adjustBarPadding();
+  sessionStorage.setItem('editMode','true');
+  const reminder = document.getElementById('editReminder');
+  if(reminder) reminder.style.display='none';
+}
+function disableEditMode(){
+  document.body.classList.remove('edit-mode');
+  const bar = document.getElementById('editBar');
+  bar.style.display = 'none';
+  document.body.style.paddingTop = '0';
+  sessionStorage.removeItem('editMode');
+}
+
+// Check URL param: yoursite.com?edit=true
+if(new URLSearchParams(window.location.search).get('edit')==='true') enableEditMode();
+// Restore if same session
+if(sessionStorage.getItem('editMode')==='true') enableEditMode();
+
+// Secret keyboard shortcut: Ctrl + Shift + E
+document.addEventListener('keydown',e=>{
+  if(e.ctrlKey && e.shiftKey && e.key==='E'){
+    document.body.classList.contains('edit-mode') ? disableEditMode() : enableEditMode();
+  }
+});
+
+// Responsive edit bar height
+function adjustBarPadding(){
+  const bar=document.getElementById('editBar');
+  if(bar&&document.body.classList.contains('edit-mode')){
+    document.body.style.paddingTop=bar.offsetHeight+'px';
+  }
+}
+adjustBarPadding();
+window.addEventListener('resize',adjustBarPadding);
+
+// Petals
+const pc = document.getElementById('petals');
+for(let i=0;i<18;i++){
+  const p=document.createElement('div');p.className='petal';
+  p.style.cssText=`left:${Math.random()*100}%;animation-duration:${6+Math.random()*10}s;animation-delay:${Math.random()*8}s;width:${6+Math.random()*6}px;height:${9+Math.random()*8}px`;
+  pc.appendChild(p);
+}
+
+// Scroll reveal
+const obs=new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){setTimeout(()=>e.target.classList.add('visible'),80);obs.unobserve(e.target)}})},{threshold:0.12});
+document.querySelectorAll('.reveal,.tl-item').forEach(el=>obs.observe(el));
+
+// Photo position control
+function posPhoto(imgId, pos){
+  const img = document.getElementById(imgId);
+  if(!img) return;
+  img.style.objectPosition = pos;
+  // highlight active button
+  const btns = img.parentNode.querySelectorAll('.photo-controls button');
+  btns.forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  savePhotoSettings();
+}
+function zoomPhoto(imgId, val){
+  const img = document.getElementById(imgId);
+  if(!img) return;
+  img.style.transform = `scale(${val/100})`;
+  img.style.transformOrigin = img.style.objectPosition || 'center center';
+  savePhotoSettings();
+}
+function savePhotoSettings(){
+  const settings = {};
+  ['pimg1','pimg2','pimg3','pimg4','pimg5','pimg6'].forEach(id=>{
+    const img = document.getElementById(id);
+    if(img){
+      settings[id] = {
+        pos: img.style.objectPosition,
+        zoom: img.style.transform
+      };
+    }
+  });
+  localStorage.setItem('dudu_bubu_photos', JSON.stringify(settings));
+}
+function loadPhotoSettings(){
+  try{
+    const saved = localStorage.getItem('dudu_bubu_photos');
+    if(!saved) return;
+    const settings = JSON.parse(saved);
+    Object.keys(settings).forEach(id=>{
+      const img = document.getElementById(id);
+      if(img && settings[id]){
+        if(settings[id].pos) img.style.objectPosition = settings[id].pos;
+        if(settings[id].zoom) img.style.transform = settings[id].zoom;
+        // sync zoom slider
+        const match = settings[id].zoom && settings[id].zoom.match(/scale\(([0-9.]+)\)/);
+        if(match){
+          const slider = img.parentNode.querySelector('input[type=range]');
+          if(slider) slider.value = Math.round(parseFloat(match[1])*100);
+        }
+        // sync active button
+        if(settings[id].pos){
+          const btns = img.parentNode.querySelectorAll('.photo-controls button');
+          btns.forEach(b=>{
+            b.classList.remove('active');
+            if(b.getAttribute('onclick') && b.getAttribute('onclick').includes(`'${settings[id].pos}'`))
+              b.classList.add('active');
+          });
+        }
+      }
+    });
+  }catch(e){}
+}
+
+// Photo upload
+function changePhoto(wrapper){
+  const input=wrapper.querySelector('input[type=file]');
+  if(input) input.click();
+}
+function loadPhoto(input){
+  const file=input.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const wrapper=input.closest('.polaroid-img');
+    wrapper.style.backgroundImage=`url(${e.target.result})`;
+    wrapper.style.backgroundSize='cover';
+    wrapper.style.backgroundPosition='center';
+    const ph=wrapper.querySelector('.photo-placeholder-box');
+    if(ph)ph.style.display='none';
+  };
+  reader.readAsDataURL(file);
+}
+
+// Help toggle
+function toggleHelp(){
+  document.getElementById('editTip').classList.toggle('show');
+}
+
+// Save progress (localStorage)
+function saveProgress(){
+  const data={};
+  document.querySelectorAll('[contenteditable]').forEach((el,i)=>{data['el_'+i]=el.innerHTML});
+  localStorage.setItem('dudu_bubu_site',JSON.stringify(data));
+  const status=document.getElementById('editStatus');
+  status.textContent='✅ Saved! Your text is stored in this browser.';
+  setTimeout(()=>status.textContent='✏️ EDIT MODE — click any text on the page to change it',3000);
+}
+
+// Load saved progress
+window.addEventListener('DOMContentLoaded',()=>{
+  const saved=localStorage.getItem('dudu_bubu_site');
+  if(saved){
+    try{
+      const data=JSON.parse(saved);
+      document.querySelectorAll('[contenteditable]').forEach((el,i)=>{
+        if(data['el_'+i]!==undefined) el.innerHTML=data['el_'+i];
+      });
+    }catch(e){}
+  }
+  loadPhotoSettings();
+});
+
+// Publish (hide edit bar)
+function publishSite(){
+  if(!confirm('This will hide the editor bar and show the clean website. Press Ctrl+Shift+E anytime to get it back.')) return;
+  disableEditMode();
+}
+</script>
+<!-- SECRET EDIT REMINDER (only visible to you, not in edit mode) -->
+<div id="editReminder" style="display:none;position:fixed;bottom:16px;right:16px;z-index:9990;background:#1A0808;border:1px solid #5A3010;border-radius:8px;padding:10px 16px;font-family:'DM Sans',sans-serif;font-size:11px;color:#C4A060;line-height:1.6;max-width:220px;box-shadow:0 4px 20px rgba(0,0,0,0.4)">
+  <span style="display:block;color:#E8C97A;font-size:12px;margin-bottom:4px">🔒 Edit Mode is hidden</span>
+  Press <strong style="color:#fff">Ctrl + Shift + E</strong> to unlock editing<br>
+  Or open <strong style="color:#fff">?edit=true</strong> in the URL<br>
+  <span style="color:#6A4020;font-size:10px;margin-top:6px;display:block">Only you can see this reminder</span>
+  <span onclick="document.getElementById('editReminder').style.display='none'" style="position:absolute;top:6px;right:10px;cursor:pointer;color:#6A4020;font-size:13px">✕</span>
+</div>
+
+<script>
+// Show reminder only when NOT in edit mode, after 2 seconds
+setTimeout(()=>{
+  if(!document.body.classList.contains('edit-mode')){
+    document.getElementById('editReminder').style.display='block';
+  }
+},2000);
+// Hide reminder when edit mode is enabled
+const _origEnable = enableEditMode;
+</script>
+
+</body>
+</html>
