@@ -20,8 +20,10 @@ body{background:var(--cream);color:var(--ink);font-family:'DM Sans',sans-serif;f
 .btn-save:hover{background:#6A1020}
 .btn-publish{background:#C9922A;color:#1A0808;font-weight:500}
 .btn-publish:hover{background:#E8C97A}
-.btn-help{background:transparent;color:#907050;border:1px solid #3A2010}
-.btn-help:hover{background:#2C1008;color:#C4A060}
+.btn-backup{background:transparent;color:#7AB87A;border:1px solid #2A4A2A}
+.btn-backup:hover{background:#1A3A1A;color:#9AE09A}
+.btn-restore{background:transparent;color:#7A9AB8;border:1px solid #2A3A4A}
+.btn-restore:hover{background:#1A2A3A;color:#9AB8E0}
 
 /* EDIT MODE: fields glow when hovered */
 body.edit-mode [contenteditable]{outline:none;border-bottom:1px dashed rgba(200,150,80,0.4);transition:border-color 0.2s;cursor:text;display:inline-block;min-width:40px}
@@ -266,7 +268,10 @@ body.published .photo-controls,body.published .photo-zoom{display:none!important
   <span id="editStatus">✏️ EDIT MODE — click any text on the page to change it</span>
   <div class="bar-btns">
     <button class="bar-btn btn-help" onclick="toggleHelp()">How to edit?</button>
-    <button class="bar-btn btn-save" onclick="saveProgress()">Save progress</button>
+    <button class="bar-btn btn-save" onclick="saveProgress()">💾 Save</button>
+    <button class="bar-btn btn-backup" onclick="backupEdits()">⬇️ Backup</button>
+    <button class="bar-btn btn-restore" onclick="document.getElementById('restoreInput').click()">⬆️ Restore</button>
+    <input type="file" id="restoreInput" accept=".json" style="display:none" onchange="restoreEdits(this)">
     <button class="bar-btn btn-publish" onclick="publishSite()">Publish (hide editor)</button>
   </div>
 </div>
@@ -629,6 +634,66 @@ function addApologyMistake(){
   container.appendChild(item);
   apologyCount++;
   item.querySelector('[contenteditable]').focus();
+}
+
+// ── BACKUP & RESTORE ──
+function backupEdits(){
+  // Collect all editable content
+  const data = {};
+  document.querySelectorAll('[contenteditable]').forEach((el,i)=>{
+    data['el_'+i] = el.innerHTML;
+  });
+  // Also save photo settings
+  const photoSettings = localStorage.getItem('dudu_bubu_photos');
+  if(photoSettings) data['__photos__'] = photoSettings;
+
+  // Download as JSON file
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'dudu-bubu-backup.json';
+  a.click();
+  URL.revokeObjectURL(url);
+
+  // Show confirmation
+  const status = document.getElementById('editStatus');
+  const orig = status.innerHTML;
+  status.innerHTML = '✅ Backup downloaded! Keep it safe.';
+  setTimeout(()=> status.innerHTML = orig, 3000);
+}
+
+function restoreEdits(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const data = JSON.parse(e.target.result);
+      // Restore photo settings first
+      if(data['__photos__']){
+        localStorage.setItem('dudu_bubu_photos', data['__photos__']);
+        loadPhotoSettings();
+        delete data['__photos__'];
+      }
+      // Restore all text content
+      document.querySelectorAll('[contenteditable]').forEach((el,i)=>{
+        if(data['el_'+i] !== undefined) el.innerHTML = data['el_'+i];
+      });
+      // Save to localStorage too
+      localStorage.setItem('dudu_bubu_site', JSON.stringify(data));
+
+      const status = document.getElementById('editStatus');
+      const orig = status.innerHTML;
+      status.innerHTML = '✅ Edits restored successfully!';
+      setTimeout(()=> status.innerHTML = orig, 3000);
+    } catch(err){
+      alert('Could not restore — file may be corrupted. Use your latest backup.');
+    }
+  };
+  reader.readAsText(file);
+  // Reset input so same file can be used again
+  input.value = '';
 }
 
 // ── SECRET EDIT MODE ──
